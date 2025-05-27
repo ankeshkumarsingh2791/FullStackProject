@@ -2,6 +2,8 @@ import mongoose from "mongoose";
 import User from "../models/User.model.js";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken"
 const registerUser = async (req, res) => {
   const { name, email, password } = req.body;
 
@@ -117,9 +119,60 @@ const LoginUser = async (req, res) => {
 
   try {
     const user = await User.findOne({email});
+    if(!user){
+      return res.status(400).json({
+        success: false,
+        message: "Invalid username or password"
+      })
+    }
+// matching password with hashed password
+    const isMatch = await bcrypt.compare(password, user.password)
+    console.log(isMatch);
+    if(!isMatch){
+      return res.status(400).json({
+        success: false,
+        message: "Invalid username or password"
+      })
+    }
+// checking user is verified or not
+    if(!user.isVerified){
+      return res.status(400).json({
+        success: false,
+        message: "User not verified, please check your email"
+      })
+    }
+    // generating jwt token
+    const JwtToken = jwt.sign({id: user._id},"shhhhh", {expiresIn: "1d"});
+  // cookie options 
+    const cookieOptions = {
+      httpOnly: true, // cannot be accessed by client side scripts
+      secure: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24hr
+    }
+    res.cookie("token", JwtToken, cookieOptions)
+// sending response
+    res.status(200).json({
+      success: true,
+      message: "User logged in successfully",
+      token: JwtToken,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    })
+
   } catch (error) {
-    
+    res.status(400).json({
+      success: false,
+      message: "User not logged in",
+      error: error.message
+
+    })
   }
 }
+
+
 
 export { registerUser, verifyUser, LoginUser };
