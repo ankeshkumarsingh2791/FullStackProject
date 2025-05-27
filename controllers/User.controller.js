@@ -70,4 +70,56 @@ const registerUser = async (req, res) => {
   }
 };
 
-export { registerUser };
+const verifyUser = async (req, res)=> {
+  // get token from url
+  // validate token
+  // find user by token
+  // if not found, return error
+  // set isVerified field true
+  // remove vrification token
+  // save
+  // return response
+
+
+  const {token} = req.params;
+  if(!token){
+    return res.status(400).json({
+      message: "Invalid token"
+    });
+  }
+
+  const user =  await User.findOne({verificationToken: token})
+
+  if(!user){
+    return res.status(400).json({
+      success: false,
+      message: "Invalid token"
+    });
+  }
+
+  user.isVerified = true;
+  user.verificationToken = undefined;
+  await user.save();
+  res.status(200).json({
+    success: true,
+    message: "User verified successfully"
+  });
+}
+
+const LoginUser = async (req, res) => {
+  const {email, password} = req.body;
+  if(!email || !password){
+    return res.status(400).json({
+      success: false,
+      message: "All fields are required"
+    })
+  }
+
+  try {
+    const user = await User.findOne({email});
+  } catch (error) {
+    
+  }
+}
+
+export { registerUser, verifyUser, LoginUser };
